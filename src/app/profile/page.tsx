@@ -1,6 +1,8 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
 import ProfileHeader from "@/components/ProfileHeader";
 import NoFitnessPlan from "@/components/NoFitnessPlan";
@@ -15,159 +17,24 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const geminiPlan = {
-  name: "Gemini AI - 5 Day Balanced Plan",
-  isActive: true,
-  workoutPlan: {
-    schedule: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-    exercises: [
-      {
-        day: "Monday",
-        routines: [
-          {
-            name: "Full Body Warm-up",
-            sets: 2,
-            reps: 20,
-            description: "Includes jumping jacks, high knees, and arm circles to increase blood flow.",
-          },
-          {
-            name: "Bodyweight Squats",
-            sets: 3,
-            reps: 15,
-            description: "Engages glutes, quads, and hamstrings to build lower body strength.",
-          },
-          {
-            name: "Push-ups",
-            sets: 3,
-            reps: 10,
-            description: "Strengthens chest, triceps, and shoulders. Modify by doing on knees if needed.",
-          },
-        ],
-      },
-      {
-        day: "Tuesday",
-        routines: [
-          {
-            name: "Cardio Intervals",
-            sets: 3,
-            reps: 30,
-            description: "Jumping jacks, butt kicks, and mountain climbers to increase heart rate.",
-          },
-          {
-            name: "Plank",
-            sets: 3,
-            reps: 1,
-            description: "Hold for 30-60 seconds per set to strengthen core and posture.",
-          },
-        ],
-      },
-      {
-        day: "Wednesday",
-        routines: [
-          {
-            name: "Lunges",
-            sets: 3,
-            reps: 12,
-            description: "Alternating forward lunges to target legs and balance.",
-          },
-          {
-            name: "Superman Hold",
-            sets: 3,
-            reps: 1,
-            description: "Hold for 30 seconds to activate lower back and glutes.",
-          },
-        ],
-      },
-      {
-        day: "Thursday",
-        routines: [
-          {
-            name: "Yoga Flow",
-            sets: 1,
-            reps: 1,
-            description: "20-minute guided yoga session for flexibility and relaxation.",
-          },
-          {
-            name: "Wall Sit",
-            sets: 3,
-            reps: 45,
-            description: "Hold for 45 seconds. Builds leg endurance.",
-          },
-        ],
-      },
-      {
-        day: "Friday",
-        routines: [
-          {
-            name: "HIIT Circuit",
-            sets: 4,
-            reps: 30,
-            description: "Burpees, jumping squats, and push-up to shoulder taps in a timed circuit.",
-          },
-          {
-            name: "Cool Down Stretch",
-            sets: 1,
-            reps: 1,
-            description: "10 minutes of full-body stretches to prevent soreness.",
-          },
-        ],
-      },
-    ],
-  },
-  dietPlan: {
-    dailyCalories: 1800,
-    meals: [
-      {
-        name: "Breakfast",
-        foods: [
-          "Oatmeal with banana and almonds",
-          "Boiled egg",
-          "Green tea",
-        ],
-      },
-      {
-        name: "Lunch",
-        foods: [
-          "Grilled chicken breast",
-          "Steamed broccoli and carrots",
-          "Brown rice (1 cup)",
-        ],
-      },
-      {
-        name: "Evening Snack",
-        foods: [
-          "Greek yogurt with berries",
-          "Handful of walnuts",
-        ],
-      },
-      {
-        name: "Dinner",
-        foods: [
-          "Lentil soup",
-          "Whole wheat roti",
-          "Sautéed spinach",
-        ],
-      },
-    ],
-  },
-};
-
 const ProfilePage = () => {
   const { user } = useUser();
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const userId = user?.id as string;
 
-  const allPlans = [geminiPlan]; // simulate loaded plans
-  const activePlan = geminiPlan;
+  const allPlans = useQuery(api.plans.getUserPlans, { userId });
+  const [selectedPlanId, setSelectedPlanId] = useState<null | string>(null);
+
+  const activePlan = allPlans?.find((plan) => plan.isActive);
 
   const currentPlan = selectedPlanId
-    ? allPlans.find((plan) => plan.name === selectedPlanId)
+    ? allPlans?.find((plan) => plan._id === selectedPlanId)
     : activePlan;
 
   return (
     <section className="relative z-10 pt-12 pb-32 flex-grow container mx-auto px-4">
       <ProfileHeader user={user} />
 
-      {allPlans && allPlans.length > 0 ? (
+      {allPlans && allPlans?.length > 0 ? (
         <div className="space-y-8">
           {/* PLAN SELECTOR */}
           <div className="relative backdrop-blur-sm border border-border p-6">
@@ -185,10 +52,10 @@ const ProfilePage = () => {
             <div className="flex flex-wrap gap-2">
               {allPlans.map((plan) => (
                 <Button
-                  key={plan.name}
-                  onClick={() => setSelectedPlanId(plan.name)}
+                  key={plan._id}
+                  onClick={() => setSelectedPlanId(plan._id)}
                   className={`text-foreground border hover:text-white ${
-                    selectedPlanId === plan.name
+                    selectedPlanId === plan._id
                       ? "bg-primary/20 text-primary border-primary"
                       : "bg-transparent border-border hover:border-primary/50"
                   }`}
@@ -205,6 +72,7 @@ const ProfilePage = () => {
           </div>
 
           {/* PLAN DETAILS */}
+
           {currentPlan && (
             <div className="relative backdrop-blur-sm border border-border rounded-lg p-6">
               <CornerElements />
@@ -225,6 +93,7 @@ const ProfilePage = () => {
                     <DumbbellIcon className="mr-2 size-4" />
                     Workout Plan
                   </TabsTrigger>
+
                   <TabsTrigger
                     value="diet"
                     className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
@@ -345,5 +214,4 @@ const ProfilePage = () => {
     </section>
   );
 };
-
 export default ProfilePage;
